@@ -1,5 +1,5 @@
 // Definitions by: Ivan Shavrin <https://ISH.ru>
-// Definitions: https://github.com/
+// Definitions: https://github.com/P1usW
 // Version: 0.0.1
 
 
@@ -284,9 +284,9 @@ class Helper {
                 this.ctx.fillRect(this.graph.ident * 8, this.graph.ident / 2, WH, -WH);
                 this.ctx.font = this.graph.font;
                 this.ctx.fillStyle = `rgba(255, 255, 255, ${0.8}`;
-                this.ctx.fillText(`${data[1]}`, this.graph.ident * 4.5, this.graph.ident / 2);
-                this.ctx.fillText(`${data[2]}`, this.graph.ident * 6.5, this.graph.ident / 2);
-                this.ctx.fillText(`${data[3]}`, this.graph.ident * 8.5, this.graph.ident / 2);
+                this.ctx.fillText(`${data.struct.operand}`, this.graph.ident * 4.5, this.graph.ident / 2);
+                this.ctx.fillText(`${data.struct.buyLevels}`, this.graph.ident * 6.5, this.graph.ident / 2);
+                this.ctx.fillText(`${data.struct.sellLevels}`, this.graph.ident * 8.5, this.graph.ident / 2);
                 this.ctx.stroke();
                 this.ctx.closePath();
                 break;
