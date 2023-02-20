@@ -1,0 +1,57 @@
+$cnvBG: #1d1d1d
+
+@mixin btn()
+    background:
+        color: transparent
+    border:
+        color: black
+        style: solid
+        width: 1px
+    width: 150px
+    height: 50px
+
+
+    &:hover
+        background: #cdcdcd
+
+body
+    margin: 0
+    padding: 0
+    width: 100vw
+    height: 100vh
+    position: relative
+    /*cursor: none;*/
+
+.container
+    display: flex
+    margin: 0 auto
+    justify-content: center
+    align-items: center
+    min-width: 300px
+    max-width: 1200px
+    width: 100%
+    height: 100vh
+    position: relative
+
+
+.canvas_elem
+    width: 100%
+    height: 100%
+    position: relative
+
+    .helper_cnv
+        position: relative
+        background-color: transparent
+        overflow: scroll
+
+    .main_cnv
+        background-color: $cnvBG
+        position: absolute
+        overflow: scroll
+
+.btn
+    @include btn()
+
+
+
+
