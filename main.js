@@ -1,8 +1,9 @@
 // Definitions by: Ivan Shavrin <https://ISH.ru>
 // Definitions: https://github.com/P1usW
-// Version: 0.0.1
+// Version: 0.0.2
 
 
+//Тестовые данные
 const dataSet = [
     [[[60, 70], 40, 100, 400],
     [[50, 60], 70, 700, 300],
@@ -52,6 +53,16 @@ const dataSet = [
 ]
 
 
+let graphTheme = new function () {
+    this.textColor = `rgba(255, 255, 255, ${0.8}`;
+    this.lineTableColor = `rgba(255, 255, 255, ${0.1}`;
+    this.axisStyle = `rgba(255, 255, 255, ${0.8}`;
+    this.cursorColor = `rgba(255, 255, 255, ${0.4}`;
+    this.byeLevel = `rgb(0, 150, 0)`;
+    this.cellLevel = `rgb(150, 0, 0)`;
+}
+
+
 class DataSet {
     constructor(dataSet) {
         this._dataSet = dataSet;
@@ -63,9 +74,7 @@ class DataSet {
         if (!this.newData) return this.dataSet;
 
         for (let datas of this._dataSet) {
-            let arr = []
             let time = new Date(datas.pop())
-
             let kl = {
                 opentime: [time.getMonth(), time.getDate()],
                 klines: []
@@ -199,12 +208,40 @@ class Table {
 }
 
 
+class Canvas {
+    constructor() {
+        this.pixelRatio = window.devicePixelRatio;
+        this.size = {x: 0, y: 0};                                       // размер канваса
+        this.sizeTable = {x: 0, y: 0};                                  // размер канваса с учётов границ
+        this.ident = 30 * this.pixelRatio;                              // отступы от границы канваса
+        this.cnvDiv = document.querySelector('.cnv_container');
+    }
+
+    setCanvasSize(canvas) {
+        canvas.style.width = Math.round(this.cnvDiv.offsetWidth) + 'px';
+        canvas.style.height = Math.round(this.cnvDiv.offsetHeight) + 'px';
+
+        this.size.x = canvas.width = Math.round(this.cnvDiv.offsetWidth * this.pixelRatio);
+        this.size.y = canvas.height = Math.round(this.cnvDiv.offsetHeight * this.pixelRatio);
+
+        this.sizeTable.x = this.size.x - this.ident * 2;
+        this.sizeTable.y = this.size.y - this.ident * 2;
+    }
+
+    resizeCanvas() {
+        this.pixelRatio = window.devicePixelRatio
+        this.ident = 30 * this.pixelRatio;
+    }
+}
+
+
 // Вспомогательный класс для отрисовки вспомогательных осей и других данных.
 // В отличие от основного класса, здесь используется анимация для отрисовки осей
 // по кадрам. (requestAnimationFrame)
 // Здесь расписана логика и события мыши, которые не нагружают основной canvas.
-class Helper {
+class Helper extends Canvas{
     constructor(graph, table) {
+        super();
         this.graph = graph;
         this.cursor = {x: this.graph.ident, y: this.graph.ident};   // координаты курсора
         this.inGraph = false;                                       // флаг нахождения курсора в канвасе
@@ -220,73 +257,76 @@ class Helper {
         this.reduceX = this.reduceX.bind(this);
         this.increaseX = this.increaseX.bind(this);
         this.updateCtx = this.updateCtx.bind(this);
+        this.resizeCanvas = this.resizeCanvas.bind(this);
+
 
         this.reqId = null;
     }
 
-    setHelperSize(x, y, w, h) {
-        this.canvas.style.width = w;
-        this.canvas.style.height = h;
+    setCanvasSize() {
+        super.setCanvasSize(this.canvas);
+    }
 
-        this.canvas.width = x;
-        this.canvas.height = y;
+    resizeCanvas() {
+        super.resizeCanvas();
+        this.setCanvasSize()
     }
 
     // Событие мыши, которое задаёт координаты
     setCursor(event) {
-        let cursorX = event.offsetX * this.graph.pixelRatio;
-        let cursorY = event.offsetY * this.graph.pixelRatio;
+        let cursorX = event.offsetX * this.pixelRatio;
+        let cursorY = event.offsetY * this.pixelRatio;
 
-        if (cursorX <= this.graph.ident) {this.cursor.x = this.graph.ident;}
-        else if (cursorX >= this.graph.size.x - this.graph.ident) {this.cursor.x = this.graph.size.x - this.graph.ident;}
+        if (cursorX <= this.ident) {this.cursor.x = this.ident;}
+        else if (cursorX >= this.size.x - this.ident) {this.cursor.x = this.size.x - this.ident;}
         else this.cursor.x = cursorX;
 
-        if (cursorY <= this.graph.ident) {this.cursor.y = this.graph.ident;}
-        else if (cursorY >= this.graph.size.y - this.graph.ident) {this.cursor.y = this.graph.size.y - this.graph.ident;}
+        if (cursorY <= this.ident) {this.cursor.y = this.ident;}
+        else if (cursorY >= this.size.y - this.ident) {this.cursor.y = this.size.y - this.ident;}
         else this.cursor.y = cursorY;
     }
 
     drawCursor() {
         this.ctx.beginPath();
-        this.ctx.strokeStyle = this.graph.cursorColor
+        this.ctx.strokeStyle = this.graph.graphTheme.cursorColor;
         this.ctx.setLineDash([15, 15]);
-        this.ctx.moveTo(this.cursor.x, this.graph.ident);
-        this.ctx.lineTo(this.cursor.x, this.graph.size.y - this.graph.ident);
-        this.ctx.moveTo(this.graph.ident, this.cursor.y);
-        this.ctx.lineTo(this.graph.size.x - this.graph.ident, this.cursor.y);
+        this.ctx.moveTo(this.cursor.x, this.ident);
+        this.ctx.lineTo(this.cursor.x, this.size.y - this.ident);
+        this.ctx.moveTo(this.ident, this.cursor.y);
+        this.ctx.lineTo(this.size.x - this.ident, this.cursor.y);
         this.ctx.stroke();
         this.ctx.closePath();
         this.ctx.setLineDash([]);
     }
 
     drawValue() {
-        let curY = this.cursor.y + this.graph.ident;
-        let value = Math.round((this.graph.size.y - curY) / (this.graph.sizeTable.y) * this.table.row.maxValue);
+        let curY = this.cursor.y + this.ident;
+        let value = Math.round((this.size.y - curY) / (this.sizeTable.y) * this.table.row.maxValue);
 
         this.ctx.beginPath();
         this.ctx.fillStyle = `rgba(255, 255, 255, ${0.8}`;
         this.ctx.font = this.graph.font;
-        this.ctx.fillText(`cost: ${value}`, this.graph.ident, this.graph.ident / 2);
+        this.ctx.fillText(`cost: ${value}`, this.ident, this.ident / 2);
         this.ctx.stroke();
         this.ctx.closePath();
     }
 
     drawPriceLevels() {
-        let WH = 10 * this.graph.pixelRatio;
+        let WH = 10 * this.pixelRatio;
         for (let [path, data] of this.graph.arrPath) {
-            if (this.graph.ctx.isPointInPath(path, this.cursor.x, this.cursor.y)) {
+            if (this.ctx.isPointInPath(path, this.cursor.x, this.cursor.y)) {
                 this.ctx.beginPath();
                 this.ctx.fillStyle = `rgba(255, 255, 255, ${data[1] / 100}`;
-                this.ctx.fillRect(this.graph.ident * 4, this.graph.ident / 2, WH, -WH);
-                this.ctx.fillStyle = this.graph.byeLevel;
-                this.ctx.fillRect(this.graph.ident * 6, this.graph.ident / 2, WH, -WH);
-                this.ctx.fillStyle = this.graph.cellLevel;
-                this.ctx.fillRect(this.graph.ident * 8, this.graph.ident / 2, WH, -WH);
+                this.ctx.fillRect(this.ident * 4, this.ident / 2, WH, -WH);
+                this.ctx.fillStyle = this.graph.graphTheme.byeLevel;
+                this.ctx.fillRect(this.ident * 6, this.ident / 2, WH, -WH);
+                this.ctx.fillStyle = this.graph.graphTheme.cellLevel;
+                this.ctx.fillRect(this.ident * 8, this.ident / 2, WH, -WH);
                 this.ctx.font = this.graph.font;
                 this.ctx.fillStyle = `rgba(255, 255, 255, ${0.8}`;
-                this.ctx.fillText(`${data.struct.operand}`, this.graph.ident * 4.5, this.graph.ident / 2);
-                this.ctx.fillText(`${data.struct.buyLevels}`, this.graph.ident * 6.5, this.graph.ident / 2);
-                this.ctx.fillText(`${data.struct.sellLevels}`, this.graph.ident * 8.5, this.graph.ident / 2);
+                this.ctx.fillText(`${data.struct.operand}`, this.ident * 4.5, this.ident / 2);
+                this.ctx.fillText(`${data.struct.buyLevels}`, this.ident * 6.5, this.ident / 2);
+                this.ctx.fillText(`${data.struct.sellLevels}`, this.ident * 8.5, this.ident / 2);
                 this.ctx.stroke();
                 this.ctx.closePath();
                 break;
@@ -305,7 +345,6 @@ class Helper {
     }
 
     scrollX(event) {
-        console.log(1)
     }
 
     updateCtx() {
@@ -313,7 +352,7 @@ class Helper {
         this.graph.loop();
     }
 
-    init() {
+    addEvents() {
         this.canvas.addEventListener('mousemove', this.setCursor);
         this.canvas.addEventListener('mouseenter', () => this.inGraph = true);
         this.canvas.addEventListener('mouseleave', () => this.inGraph = false);
@@ -324,6 +363,12 @@ class Helper {
         this.btnUp.addEventListener('click', this.increaseX);
         this.btnDown.addEventListener('click', this.reduceX);
         this.btnUpdate.addEventListener('click', this.updateCtx);
+    }
+
+    init() {
+        this.addEvents();
+        window.addEventListener('resize', this.resizeCanvas);
+        this.setCanvasSize();
         this.loop();
     }
 
@@ -342,36 +387,19 @@ class Helper {
 }
 
 
-// Основной класс, который отрисовывает графики
-//
-// Его задачи:
-//      - Задать размеры canvas на основе контейнера;
-//      - Отрисовать оси и таблицу;
-//      - Отрисовать данные;
-//      - Изменять цвет осей и данных.
-//
-// Использовать нужно только его, остальные классы используются для разделения кода.
-class Graph {
+// Основной класс, который отрисовывает графики.
+// Использовать нужно только его, остальные классы нужны для разделения кода.
+class Graph extends Canvas{
     constructor(dataSet) {
-        this.pixelRatio = window.devicePixelRatio;
-        this.size = {x: 0, y: 0};                                       // размер канваса
-        this.sizeTable = {x: 0, y: 0};                                  // размер канваса с учётов границ
-        this.ident = 30 * this.pixelRatio;                              // отступы от границы канваса
-        this.cnvDiv = document.querySelector('.canvas_elem');
+        super();
         this.canvas = document.getElementById('canvas');
         this.ctx = this.canvas.getContext('2d');
         this.dataSet = new DataSet(dataSet);
         this.table = new Table(this);
         this.helper = new Helper(this, this.table);
+        this.graphTheme = graphTheme;
 
         this.arrPath = new Map();
-
-        this.textColor = `rgba(255, 255, 255, ${0.8}`;
-        this.lineTableColor = `rgba(255, 255, 255, ${0.1}`;
-        this.axisStyle = `rgba(255, 255, 255, ${0.8}`;
-        this.cursorColor = `rgba(255, 255, 255, ${0.4}`;
-        this.byeLevel = `rgb(0, 150, 0)`;
-        this.cellLevel = `rgb(150, 0, 0)`;
 
         this.font = `${Math.round(12*this.pixelRatio)}px serif`;
 
@@ -380,30 +408,16 @@ class Graph {
     }
 
     setCanvasSize() {
-        let width = this.canvas.style.width = Math.round(this.cnvDiv.offsetWidth) + 'px';
-        let height = this.canvas.style.height = Math.round(this.cnvDiv.offsetWidth / 1.5) + 'px';
-
-        this.size.x = this.canvas.width = Math.round(this.cnvDiv.offsetWidth * this.pixelRatio);
-        this.size.y = this.canvas.height = Math.round(this.cnvDiv.offsetWidth / 1.5 * this.pixelRatio);
-        // console.log(window.devicePixelRatio)
-        this.sizeTable.x = this.size.x - this.ident * 2;
-        this.sizeTable.y = this.size.y - this.ident * 2;
-
-        this.helper.setHelperSize(this.size.x, this.size.y, width, height)
+        super.setCanvasSize(this.canvas);
     }
 
-    // В основном все графики растягиваются или сжимаются только
-    // по оси Х, поэтому изменяться будет только значение width.
-    // При необходимости можно добавить таки для height, однако
-    // такое решение будет странным.
     resizeCanvas() {
-        this.pixelRatio = window.devicePixelRatio
+        super.resizeCanvas();
         this.font = `${Math.round(12*this.pixelRatio)}px serif`;
-
-        this.ident = 30 * this.pixelRatio;
         this.setCanvasSize();
         this.resize();
     }
+
     resize(value) {
         this.table.createTable(value)
         this.updateCanvas();
@@ -412,7 +426,7 @@ class Graph {
     // Отрисовка осей
     drawAxis() {
         this.ctx.beginPath();
-        this.ctx.strokeStyle = this.axisStyle;
+        this.ctx.strokeStyle = this.graphTheme.axisStyle;
         this.ctx.moveTo(this.ident, this.ident);
         this.ctx.lineTo(this.ident, this.size.y - this.ident);
         this.ctx.lineTo(this.size.x, this.size.y - this.ident);
@@ -430,10 +444,10 @@ class Graph {
             this.ctx.beginPath();
             this.ctx.textAlign = 'right';
             this.ctx.textBaseline = 'middle';
-            this.ctx.fillStyle = this.textColor;
+            this.ctx.fillStyle = this.graphTheme.textColor;
             this.ctx.font = this.font;
             this.ctx.fillText(`${i[0]}`, this.ident * 0.9, i[1]);
-            this.ctx.strokeStyle = this.lineTableColor;
+            this.ctx.strokeStyle = this.graphTheme.lineTableColor;
             this.ctx.moveTo(this.ident, i[1]);
             this.ctx.lineTo(this.size.x, i[1]);
             this.ctx.stroke();
@@ -446,10 +460,10 @@ class Graph {
             this.ctx.beginPath();
             this.ctx.textAlign = 'center';
             this.ctx.textBaseline = 'middle';
-            this.ctx.fillStyle = this.textColor;
+            this.ctx.fillStyle = this.graphTheme.textColor;
             this.ctx.font = this.font;
             this.ctx.fillText(`${j[0]} Feb`, j[1], this.size.y - this.ident * 0.5);
-            this.ctx.strokeStyle = this.lineTableColor;
+            this.ctx.strokeStyle = this.graphTheme.lineTableColor;
             this.ctx.moveTo(j[1], this.ident);
             this.ctx.lineTo(j[1], this.size.y - this.ident);
             this.ctx.stroke();
@@ -490,13 +504,13 @@ class Graph {
                 this.ctx.fill();
                 this.ctx.closePath();
                 this.ctx.beginPath();
-                this.ctx.fillStyle = this.byeLevel;
+                this.ctx.fillStyle = this.graphTheme.byeLevel;
                 this.ctx.rect(x + sizeCost, y, _sizeBye, -h);
                 this.ctx.stroke();
                 this.ctx.fill();
                 this.ctx.closePath();
                 this.ctx.beginPath();
-                this.ctx.fillStyle = this.cellLevel;
+                this.ctx.fillStyle = this.graphTheme.cellLevel;
                 this.ctx.rect(x + sizeCost + _sizeBye, y, _sizeSell, -h);
                 this.ctx.stroke();
                 this.ctx.fill();

@@ -11,7 +11,6 @@ body {
   display: flex;
   margin: 0 auto;
   justify-content: center;
-  align-items: center;
   min-width: 300px;
   max-width: 1200px;
   width: 100%;
@@ -19,29 +18,46 @@ body {
   position: relative;
 }
 
-.canvas_elem {
+.btn_cnv {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.5s linear;
+  position: absolute;
+  z-index: 10;
+  right: 0;
+  top: 0;
+  width: 30%;
+}
+
+.cnv_container {
   width: 100%;
-  height: 100%;
+  height: 700px;
   position: relative;
 }
-.canvas_elem .helper_cnv {
+.cnv_container .helper_cnv {
   position: relative;
   background-color: transparent;
   overflow: scroll;
 }
-.canvas_elem .main_cnv {
+.cnv_container .main_cnv {
   background-color: #1d1d1d;
   position: absolute;
   overflow: scroll;
 }
+.cnv_container:hover .btn_cnv {
+  opacity: 1;
+}
 
 .btn {
   background-color: transparent;
-  border-color: black;
+  border-color: gray;
   border-style: solid;
   border-width: 1px;
-  width: 150px;
-  height: 50px;
+  color: gray;
+  width: 15%;
+  height: 10%;
 }
 .btn:hover {
   background: #cdcdcd;
